@@ -7,7 +7,7 @@ description: "RN blog."
 keyword: "RaiseNorth, RaiseNorth Blog, 詹升北的博客, Android, 詹升北, Windows, Apple, iPhone"
 url: "https://raisenorth.github.io/"          # your host, for absolute URL
 baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
-github_repo: "https://github.com/qiubaiying/qiubaiying.github.io.git" # you code repository
+github_repo: "https://github.com/RaiseNorth/RaiseNorth.github.io.git" # you code repository
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
@@ -61,12 +61,12 @@ kramdown:
 
 # Gitalk
 gitalk:
-  enable: false   #是否开启Gitalk评论
-  clientID: f2c84e7629bb1446c1a4                            #生成的clientID
-  clientSecret: ca6d6139d1e1b8c43f8b2e19492ddcac8b322d0d    #生成的clientSecret
-  repo: qiubaiying.github.io    #仓库名称
-  owner: qiubaiying    #github用户名
-  admin: qiubaiying
+  enable: true   #是否开启Gitalk评论
+  clientID: c5e2951ce1f1341dc0f1                            #生成的clientID
+  clientSecret: 225b3a24a3d8885f7e7d564e3b2fecde7be6539a    #生成的clientSecret
+  repo: raisenorth.github.io    #仓库名称
+  owner: raisenorth    #github用户名
+  admin: raisenorth
   distractionFreeMode: true #是否启用类似FB的阴影遮罩
 
 
