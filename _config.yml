@@ -67,7 +67,7 @@ gitalk:
   repo: RaiseNorth.github.io    #仓库名称
   owner: RaiseNorth    #github用户名
   admin: RaiseNorth
-#  distractionFreeMode: true #是否启用类似FB的阴影遮罩
+  distractionFreeMode: true #是否启用类似FB的阴影遮罩
 
 
 # 统计
