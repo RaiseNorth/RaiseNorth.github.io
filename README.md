@@ -3,6 +3,7 @@
 ## 致谢
 
 这个模板是从这里 [qiubaiying](https://github.com/qiubaiying/qiubaiying.github.io) fork 的, 感谢这个作者。 
+原始模板作者[Hux](http://huangxuan.me/)，感谢这个作者。
 
 ## License
 
