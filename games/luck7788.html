@@ -30,6 +30,9 @@
             flex-direction: column;
             gap: 8px;
             padding: 5px;
+            /* 刘海/挖孔屏安全区 */
+            padding-top: max(5px, env(safe-area-inset-top));
+            padding-bottom: max(5px, env(safe-area-inset-bottom));
         }
 
         /* 顶部统计栏 */
@@ -74,25 +77,25 @@
             flex-direction: column;
             align-items: center;
             justify-content: center; /* 整体居中，更加紧凑优雅 */
-            gap: 4px; /* 控制 Emoji 和金额之间的微小间距 */
+            gap: 8px; /* Emoji 和金额之间的间距（手机上 4px 会挤在一起） */
             padding: 2px 0;
             overflow: hidden;
         }
 
         /* 汉字/Emoji */
         .cell-pattern {
-            font-size: 5.5vw; /* 列数变少，字号可以稍微放大 */
-            line-height: 1;
+            font-size: clamp(18px, 5.5vw, 36px); /* 列数变少，字号可以稍微放大；手机设下限避免过小 */
+            line-height: 1.2; /* Android 字体带边距，1.0 容易裁切 emoji */
         }
         .cell-pattern.red {
             color: #C83030;
-            font-family: "STSong", "SimSun", serif;
+            font-family: "STSong", "SimSun", "Noto Serif SC", "Source Han Serif SC", serif;
             font-weight: bold;
         }
 
         /* 金额 */
         .cell-amount {
-            font-size: 2.8vw; /* 金额为图案的 1/2 */
+            font-size: clamp(12px, 3vw, 18px); /* 金额为图案的 1/2 左右；手机上保证可读 */
             color: #444; /* 深灰色比纯黑更显高级 */
             font-family: monospace;
             font-weight: bold;
@@ -482,16 +485,20 @@
     canvas.addEventListener('touchend', handleUp);
     canvas.addEventListener('touchcancel', handleUp);
 
+    // 手机浏览器地址栏收起会触发 resize；只在宽度真正变化（如旋转屏幕）时重开，避免误清进度
+    let lastViewportWidth = window.innerWidth;
     window.addEventListener('resize', () => {
-        if(gridData.length > 0) {
-            resizeCanvas();
-            drawCoating();
-            clearedState.fill(false);
-            clearedCount = 0;
-            count7 = 0; count8 = 0; winNumbers = [];
-            document.getElementById('count-7').innerText = 0;
-            document.getElementById('count-8').innerText = 0;
-        }
+        if (gridData.length === 0) return;
+        const widthChanged = Math.abs(window.innerWidth - lastViewportWidth) > 2;
+        if (!widthChanged) return;
+        lastViewportWidth = window.innerWidth;
+        resizeCanvas();
+        drawCoating();
+        clearedState.fill(false);
+        clearedCount = 0;
+        count7 = 0; count8 = 0; winNumbers = [];
+        document.getElementById('count-7').innerText = 0;
+        document.getElementById('count-8').innerText = 0;
     });
 
     function showResult() {
