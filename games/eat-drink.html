@@ -542,6 +542,8 @@ function initGame() {
 document.getElementById('result-modal').classList.remove('show');
 totalKcal = 0; winItems = [];
 securityTriggered = false; awaitingSettle = false;
+clearTimeout(revealTimeout); revealTimeout = null;
+canvas.style.transition = ''; canvas.style.opacity = '1';
 document.getElementById('total-kcal').innerText = totalKcal;
 clearedState = new Array(TOTAL_CELLS).fill(false);
 clearedCount = 0;
@@ -581,6 +583,7 @@ let securityDrawing = false;
 let securityLastX = 0, securityLastY = 0;
 let securityTriggered = false;
 let awaitingSettle = false;
+let revealTimeout = null;
 function buildFingerprint() {
 return gridData.map(cell => cell.emoji + (cell.kcal || '')).join('');
 }
@@ -697,14 +700,13 @@ let transparent = 0;
 for (let i = 3; i < img.length; i += 4) {
 if (img[i] < 50) transparent++;
 }
-if (transparent / (w * h) > 0.5) {
+if (transparent / (w * h) > 0.7) {
 securityTriggered = true;
 revealAllCells();
 }
 }
 function revealAllCells() {
 if (clearedCount === TOTAL_CELLS) return;
-ctx.clearRect(0, 0, canvas.width, canvas.height);
 for (let i = 0; i < TOTAL_CELLS; i++) {
 if (!clearedState[i]) {
 clearedState[i] = true;
@@ -712,7 +714,16 @@ clearedCount++;
 processCellReward(i);
 }
 }
+clearTimeout(revealTimeout);
+canvas.style.transition = 'opacity 0.9s ease';
+canvas.style.opacity = '0';
+revealTimeout = setTimeout(() => {
+revealTimeout = null;
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+canvas.style.transition = '';
+canvas.style.opacity = '1';
 awaitingSettle = true;
+}, 950);
 }
 securityCanvas.addEventListener('mousedown', securityDown);
 securityCanvas.addEventListener('mousemove', securityMove);
@@ -860,6 +871,8 @@ totalKcal = 0; winItems = [];
 document.getElementById('total-kcal').innerText = 0;
 gridData.forEach(cell => { cell.cleared = false; if (cell.el) { cell.el.classList.remove('matched'); cell.el.style.backgroundColor = ''; } });
 securityTriggered = false; awaitingSettle = false;
+clearTimeout(revealTimeout); revealTimeout = null;
+canvas.style.transition = ''; canvas.style.opacity = '1';
 setupSecurityArea();
 });
 function showResult() {
