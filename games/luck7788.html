@@ -466,6 +466,7 @@ return { c7, c8 };
 function initGame() {
 document.getElementById('result-modal').classList.remove('show');
 count7 = 0; count8 = 0; winNumbers = [];
+securityTriggered = false; awaitingSettle = false;
 document.getElementById('count-7').innerText = count7;
 document.getElementById('count-8').innerText = count8;
 clearedState = new Array(TOTAL_CELLS).fill(false);
@@ -507,6 +508,8 @@ const barcodeCanvas = document.getElementById('barcode-canvas');
 const securityCtx = securityCanvas.getContext('2d');
 let securityDrawing = false;
 let securityLastX = 0, securityLastY = 0;
+let securityTriggered = false;
+let awaitingSettle = false;
 function buildFingerprint() {
 return gridData.map(cell => cell.pattern + cell.amount).join('');
 }
@@ -602,15 +605,43 @@ const pos = getSecurityPos(e);
 securityLastX = pos.x;
 securityLastY = pos.y;
 securityScratch(pos.x, pos.y);
+checkSecurityOpened();
 }
 function securityMove(e) {
 if (!securityDrawing) return;
 e.preventDefault();
 const pos = getSecurityPos(e);
 securityScratch(pos.x, pos.y);
+checkSecurityOpened();
 }
 function securityUp() {
 securityDrawing = false;
+}
+function checkSecurityOpened() {
+if (securityTriggered) return;
+const w = securityCanvas.width, h = securityCanvas.height;
+if (!w || !h) return;
+const img = securityCtx.getImageData(0, 0, w, h).data;
+let transparent = 0;
+for (let i = 3; i < img.length; i += 4) {
+if (img[i] < 50) transparent++;
+}
+if (transparent / (w * h) > 0.5) {
+securityTriggered = true;
+revealAllCells();
+}
+}
+function revealAllCells() {
+if (clearedCount === TOTAL_CELLS) return;
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+for (let i = 0; i < TOTAL_CELLS; i++) {
+if (!clearedState[i]) {
+clearedState[i] = true;
+clearedCount++;
+processCellReward(i);
+}
+}
+awaitingSettle = true;
 }
 securityCanvas.addEventListener('mousedown', securityDown);
 securityCanvas.addEventListener('mousemove', securityMove);
@@ -714,6 +745,11 @@ setTimeout(showResult, 500);
 }
 function handleDown(e) {
 e.preventDefault();
+if (awaitingSettle) {
+awaitingSettle = false;
+showResult();
+return;
+}
 isDrawing = true;
 const pos = getMousePos(e);
 lastX = pos.x;
@@ -752,6 +788,7 @@ clearedCount = 0;
 count7 = 0; count8 = 0; winNumbers = [];
 document.getElementById('count-7').innerText = 0;
 document.getElementById('count-8').innerText = 0;
+securityTriggered = false; awaitingSettle = false;
 setupSecurityArea();
 });
 function showResult() {
