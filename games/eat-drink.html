@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>吃吃喝喝</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #F5E9E7;
+            font-family: "DengXian", "等线", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-container {
+
+            width: min(96vw, 420px);
+            height: min(98dvh, 860px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 5px;
+
+            padding-top: max(5px, env(safe-area-inset-top));
+            padding-bottom: max(5px, env(safe-area-inset-bottom));
+        }
+
+
+        .top-bar {
+            background-color: transparent;
+            border: 1.5px solid #B89970;
+            border-radius: 8px;
+            padding: 6px 0;
+            text-align: center;
+            font-size: 16px;
+            color: #333;
+            font-weight: bold;
+            letter-spacing: 2px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+        .top-bar span {
+            color: #333;
+            font-family: "DengXian", "等线", "Microsoft YaHei", sans-serif;
+        }
+
+
+        .game-area {
+            flex: 1;
+            position: relative;
+            background-color: #F4EFEA;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            min-height: 0;
+        }
+
+
+
+        .cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 2px;
+            overflow: hidden;
+        }
+
+
+        .cell-pattern {
+            font-size: clamp(22px, min(9vw, 5.5vh), 40px);
+            line-height: 1.15;
+        }
+
+
+        .cell-amount {
+            font-size: clamp(10px, min(4.5vw, 2.8vh), 18px);
+            color: #111;
+            font-family: "DengXian", "等线", "Microsoft YaHei", "PingFang SC", sans-serif;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+            letter-spacing: -0.5px;
+        }
+        .cell.matched {
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.28);
+            animation: match-pop 0.45s ease;
+        }
+        .cell.matched .cell-amount {
+            font-size: clamp(12px, min(5.5vw, 3.4vh), 22px);
+            font-weight: 800;
+        }
+        @keyframes match-pop {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.07); }
+            100% { transform: scale(1); }
+        }
+
+
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 99;
+            cursor: crosshair;
+        }
+
+
+        .bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            padding-bottom: 5px;
+            gap: 12px;
+        }
+
+
+        .security-box {
+            position: relative;
+
+            width: min(62vw, 300px);
+            height: 72px;
+            flex-shrink: 0;
+            border: 1.5px solid #B89970;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .security-box canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #barcode-canvas {
+            z-index: 1;
+            background: #fff;
+        }
+        #security-canvas {
+            z-index: 2;
+            cursor: crosshair;
+        }
+
+        .btn {
+            background-color: #E5C4B8;
+            color: #4A2E25;
+            border: 1px solid #B89970;
+            padding: 10px 22px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            cursor: pointer;
+            letter-spacing: 1px;
+            line-height: 1.25;
+            margin-left: auto;
+            white-space: pre-line;
+            text-align: center;
+        }
+
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-content {
+            background-color: rgba(40, 20, 20, 0.95);
+            border: 2px solid #B89970;
+            border-radius: 12px;
+            padding: 20px;
+            width: 85%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            color: #E5C4B8;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .modal-label {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .modal-numbers {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            word-break: break-all;
+            line-height: 1.4;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .modal-stats {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .modal-btn {
+            background-color: #E5C4B8;
+            color: #333;
+            padding: 10px 30px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            line-height: 1.25;
+            white-space: pre-line;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div>热量：<span id="total-kcal">0</span></div>
+    </div>
+
+    <div class="game-area" id="game-area">
+        <canvas id="scratch-canvas"></canvas>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="security-box" id="security-box">
+            <canvas id="barcode-canvas"></canvas>
+            <canvas id="security-canvas"></canvas>
+        </div>
+        <button class="btn" onclick="initGame()">再来
+一把</button>
+    </div>
+</div>
+
+<!-- 结算弹窗 -->
+<div class="modal-overlay" id="result-modal">
+    <div class="modal-content">
+        <div class="modal-title">热量盘点</div>
+        <div class="modal-label">中奖组合</div>
+        <div class="modal-numbers" id="modal-numbers">暂无</div>
+        <div class="modal-stats" id="modal-stats">总热量 0</div>
+        <button class="modal-btn" onclick="initGame()">再来
+一把</button>
+    </div>
+</div>
+
+<script>(function(global){
+var CLUSTERS="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";
+var RS2=[0x0ed,0x134,0x1b4,0x11c,0x286,0x28d,0x1ac,0x17b];
+var START="11111111010101000";
+var STOP ="111111101000101001";
+var ROWH=3,QH=1,QV=1;
+function unpackClusters(){
+var s=atob(CLUSTERS),n=2787,a=[[],[],[]],bit=0,i,k,v;
+for(i=0;i<n;i++){
+v=0;
+for(k=0;k<17;k++){
+v=(v<<1)|((s.charCodeAt(bit>>3)>>(7-(bit&7)))&1);
+bit++;
+}
+a[(i/929)|0].push(v);
+}
+return a;
+}
+var CL=unpackClusters();
+function textValues(s){
+var out=[],sub=0,i,ch,v;
+for(i=0;i<s.length;i++){
+ch=s.charCodeAt(i);
+if(ch>=65&&ch<=90){
+v=ch-65;
+if(sub===0)out.push(v);
+else if(sub===1){out.push(28,28);sub=0;out.push(v);}
+else if(sub===2){out.push(28);sub=0;out.push(v);}
+else{out.push(29);out.push(v);}
+}else if(ch>=48&&ch<=57){
+v=ch-48;
+if(sub===2)out.push(v);
+else if(sub===0){out.push(28);sub=2;out.push(v);}
+else if(sub===1){out.push(28);sub=2;out.push(v);}
+else{out.push(29,28);sub=2;out.push(v);}
+}else{
+throw new Error("PDF417-mini:only 0-9A-F");
+}
+}
+if(out.length&1)out.push(29);
+var cw=[];
+for(i=0;i<out.length;i+=2)cw.push(30*out[i]+out[i+1]);
+return cw;
+}
+function rsEncode(data,ecl){
+var ecc=ecl===2?RS2:RS2;
+var k=2<<2;
+var ecw=[],j,t1,t2,t3;
+for(j=0;j<k;j++)ecw.push(0);
+for(var i=0;i<data.length;i++){
+t1=(data[i]+ecw[k-1])%929;
+for(j=k-1;j>0;j--){
+t2=t1*ecc[j]%929;
+t3=929-t2;
+ecw[j]=(ecw[j-1]+t3)%929;
+}
+t2=t1*ecc[0]%929;
+t3=929-t2;
+ecw[0]=t3%929;
+}
+for(j=0;j<ecw.length;j++)if(ecw[j]!==0)ecw[j]=929-ecw[j];
+return ecw.reverse();
+}
+function pattern(cw,cid){
+var v=CL[cid][cw],s="",b,i;
+for(i=16;i>=0;i--){b=(v>>i)&1;s+=b?"1":"0";}
+return s;
+}
+function encode(hex){
+var s=String(hex).toUpperCase().replace(/[^0-9A-F]/g,"");
+if(!s.length)s="0";
+var data=textValues(s);
+var numcw=data.length;
+var ecl=2,errsize=8;
+var nce=numcw+errsize+1;
+var cols=6;
+var rows=Math.ceil(nce/cols);
+if(rows<3)rows=3;
+if(rows>90)rows=90;
+var size=cols*rows;
+var pad=size-nce;
+if(pad>0)for(var i=0;i<pad;i++)data.push(900);
+var sld=size-errsize;
+data.unshift(sld);
+var ecw=rsEncode(data,ecl);
+var all=data.concat(ecw);
+var matrix=[],r,c,k=0,cid=0,L,row,h;
+function bits17(n){
+var s="",i;
+for(i=16;i>=0;i--)s+=(n>>i)&1?"1":"0";
+return s;
+}
+for(r=0;r<rows;r++){
+row="0".repeat(QH)+START;
+if(cid===0)L=30*(r/3|0)+((rows-1)/3|0);
+else if(cid===1)L=30*(r/3|0)+ecl*3+(rows-1)%3;
+else L=30*(r/3|0)+(cols-1);
+row+=bits17(CL[cid][L]);
+for(c=0;c<cols;c++){row+=bits17(CL[cid][all[k]]);k++;}
+if(cid===0)L=30*(r/3|0)+(cols-1);
+else if(cid===1)L=30*(r/3|0)+((rows-1)/3|0);
+else L=30*(r/3|0)+ecl*3+(rows-1)%3;
+row+=bits17(CL[cid][L]);
+row+=STOP+"0".repeat(QH);
+for(h=0;h<ROWH;h++)matrix.push(row);
+cid=(cid+1)%3;
+}
+var wide=matrix[0].length;
+var quietRow="0".repeat(wide);
+for(r=0;r<QV;r++)matrix.unshift(quietRow);
+for(r=0;r<QV;r++)matrix.push(quietRow);
+return matrix;
+}
+function draw(canvas,hex){
+var m=encode(hex);
+var cols=m[0].length,rows=m.length,y,x;
+canvas.width=cols;canvas.height=rows;
+var ctx=canvas.getContext("2d");
+var img=ctx.createImageData(cols,rows);
+for(y=0;y<rows;y++){
+for(x=0;x<cols;x++){
+var i=(y*cols+x)*4;
+var on=m[y].charAt(x)==="1";
+img.data[i]=img.data[i+1]=img.data[i+2]=on?0:255;
+img.data[i+3]=255;
+}
+}
+ctx.putImageData(img,0,0);
+}
+global.PDF417Mini=window.PDF417Mini={encode:encode,draw:draw};
+})(typeof window!=="undefined"?window:this);</script>
+<script>const FOODS = [
+{ e: "🍎", k: 95 }, { e: "🍐", k: 100 }, { e: "🍊", k: 62 }, { e: "🍋", k: 15 }, { e: "🍌", k: 105 }, { e: "🍉", k: 50 },
+{ e: "🍇", k: 104 }, { e: "🍓", k: 50 }, { e: "🫐", k: 85 }, { e: "🍈", k: 55 }, { e: "🍒", k: 95 }, { e: "🍑", k: 60 },
+{ e: "🥭", k: 125 }, { e: "🍍", k: 80 }, { e: "🥥", k: 280 }, { e: "🥝", k: 45 }, { e: "🍅", k: 25 }, { e: "🥑", k: 250 },
+{ e: "🍔", k: 550 }, { e: "🍟", k: 340 }, { e: "🍕", k: 285 }, { e: "🌭", k: 350 }, { e: "🥪", k: 320 }, { e: "🌮", k: 220 },
+{ e: "🌯", k: 500 }, { e: "🥙", k: 420 }, { e: "🍝", k: 500 }, { e: "🍜", k: 450 }, { e: "🍛", k: 550 }, { e: "🍣", k: 350 },
+{ e: "🍱", k: 650 }, { e: "🥟", k: 400 }, { e: "🍤", k: 250 }, { e: "🍚", k: 200 }, { e: "🍢", k: 130 }, { e: "🍡", k: 150 },
+{ e: "🥮", k: 420 }, { e: "🥞", k: 280 }, { e: "🧇", k: 290 }, { e: "🍳", k: 150 }, { e: "🥗", k: 150 }, { e: "🍲", k: 250 },
+{ e: "🥣", k: 160 }, { e: "🍞", k: 80 }, { e: "🥐", k: 250 }, { e: "🥖", k: 180 }, { e: "🥨", k: 280 }, { e: "🧀", k: 100 },
+{ e: "🥓", k: 85 }, { e: "🥩", k: 450 }, { e: "🍗", k: 380 }, { e: "🍖", k: 300 }, { e: "🥚", k: 80 }, { e: "🥘", k: 350 },
+{ e: "🧆", k: 320 }, { e: "🍦", k: 220 }, { e: "🍧", k: 150 }, { e: "🍨", k: 280 }, { e: "🍰", k: 350 }, { e: "🧁", k: 180 },
+{ e: "🥧", k: 300 }, { e: "🍮", k: 200 }, { e: "🍭", k: 50 }, { e: "🍬", k: 50 }, { e: "🍫", k: 250 }, { e: "🍿", k: 150 },
+{ e: "🍩", k: 220 }, { e: "🍪", k: 120 }, { e: "🍯", k: 65 }, { e: "🥜", k: 165 }, { e: "🌰", k: 120 }, { e: "🥛", k: 150 },
+{ e: "☕", k: 10 }, { e: "🍵", k: 2 }, { e: "🧋", k: 350 }, { e: "🥤", k: 140 }, { e: "🍺", k: 150 }, { e: "🍻", k: 280 },
+{ e: "🥂", k: 90 }, { e: "🍷", k: 125 }, { e: "🍸", k: 180 }, { e: "🍹", k: 220 }, { e: "🥃", k: 105 }, { e: "🧃", k: 100 },
+{ e: "🍶", k: 180 }, { e: "🧉", k: 40 }
+];
+const HL_COLORS = ["#FFE8B0", "#C8F0D8", "#FFD4C4", "#CCE8FF", "#E8D4FF", "#FFF6A8"];
+const ROWS=7;
+const COLS = 5;
+const TOTAL_CELLS = ROWS * COLS;
+let gridData = [];
+let clearedState = [];
+let clearedCount = 0;
+let totalKcal = 0;
+let revealedGroups = {};
+const canvas = document.getElementById('scratch-canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+function getBrushRadius() {
+const cellW = canvas.width / COLS;
+const cellH = canvas.height / ROWS;
+return Math.max(10, Math.min(cellW, cellH) * 0.28);
+}
+function pickFood() {
+return FOODS[Math.floor(Math.random() * FOODS.length)];
+}
+function buildGridData() {
+const r = Math.random() * 100;
+let pairCount;
+if (r < 5) pairCount = 0;
+else if (r < 40) pairCount = 1;
+else if (r < 80) pairCount = 2;
+else if (r < 93) pairCount = 3;
+else if (r < 98) pairCount = 4;
+else pairCount = 5;
+const used = new Set();
+const pairs = [];
+const hl = HL_COLORS.slice();
+for (let i = hl.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[hl[i], hl[j]] = [hl[j], hl[i]];
+}
+for (let g = 0; g < pairCount; g++) {
+let food = pickFood();
+while (used.has(food.e)) food = pickFood();
+used.add(food.e);
+pairs.push({ e: food.e, k: food.k, hl: hl[g] });
+}
+const idx = Array.from({ length: TOTAL_CELLS }, (_, i) => i);
+for (let i = idx.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[idx[i], idx[j]] = [idx[j], idx[i]];
+}
+const slots = new Array(TOTAL_CELLS).fill(null);
+let cur = 0;
+for (const food of pairs) {
+slots[idx[cur++]] = food;
+slots[idx[cur++]] = food;
+}
+for (let i = 0; i < TOTAL_CELLS; i++) {
+if (slots[i]) continue;
+let food = pickFood();
+let tries = 0;
+while (used.has(food.e) && tries < 200) {
+food = pickFood();
+tries++;
+}
+if (used.has(food.e)) {
+food = FOODS.find(f => !used.has(f.e));
+}
+used.add(food.e);
+slots[i] = { e: food.e, k: food.k, hl: null };
+}
+return slots;
+}
+function initGame() {
+document.getElementById('result-modal').classList.remove('show');
+totalKcal = 0; revealedGroups = {};
+document.getElementById('total-kcal').innerText = totalKcal;
+clearedState = new Array(TOTAL_CELLS).fill(false);
+clearedCount = 0;
+gridData = [];
+const gameArea = document.getElementById('game-area');
+Array.from(gameArea.children).forEach(child => {
+if (child.id !== 'scratch-canvas') child.remove();
+});
+resizeCanvas();
+drawCoating();
+const slots = buildGridData();
+for (let i = 0; i < TOTAL_CELLS; i++) {
+const food = slots[i];
+const record = { emoji: food.e, kcal: food.k, hl: food.hl, cleared: false, el: null };
+gridData.push(record);
+const cell = document.createElement('div');
+cell.className = 'cell';
+const pDiv = document.createElement('div');
+pDiv.className = 'cell-pattern';
+pDiv.innerText = food.e;
+const aDiv = document.createElement('div');
+aDiv.className = 'cell-amount';
+aDiv.innerText = food.k;
+cell.appendChild(pDiv);
+cell.appendChild(aDiv);
+gameArea.appendChild(cell);
+record.el = cell;
+}
+setupSecurityArea();
+}
+const securityCanvas = document.getElementById('security-canvas');
+const barcodeCanvas = document.getElementById('barcode-canvas');
+const securityCtx = securityCanvas.getContext('2d');
+let securityDrawing = false;
+let securityLastX = 0, securityLastY = 0;
+function buildFingerprint() {
+return gridData.map(cell => cell.emoji + cell.kcal).join('');
+}
+async function sha256Hex(str) {
+const data = new TextEncoder().encode(str);
+const hash = await crypto.subtle.digest('SHA-256', data);
+return Array.from(new Uint8Array(hash))
+.map(b => b.toString(16).padStart(2, '0'))
+.join('');
+}
+function resizeSecurityCanvases() {
+const rect = document.getElementById('security-box').getBoundingClientRect();
+securityCanvas.width = rect.width;
+securityCanvas.height = rect.height;
+barcodeCanvas.width = rect.width;
+barcodeCanvas.height = rect.height;
+}
+function drawSecurityCoating() {
+securityCtx.globalCompositeOperation = 'source-over';
+securityCtx.fillStyle = '#E5C4B8';
+securityCtx.fillRect(0, 0, securityCanvas.width, securityCanvas.height);
+const label = '保安区刮开无效';
+const fontStack = '"SimHei", "黑体", "Heiti SC", "Microsoft YaHei", sans-serif';
+const maxW = securityCanvas.width - 16;
+let fontSize = Math.round(securityCanvas.height * 0.3);
+securityCtx.font = `bold ${fontSize}px ${fontStack}`;
+while (securityCtx.measureText(label).width > maxW && fontSize > 10) {
+fontSize -= 1;
+securityCtx.font = `bold ${fontSize}px ${fontStack}`;
+}
+securityCtx.fillStyle = '#7A4A3A';
+securityCtx.textAlign = 'center';
+securityCtx.textBaseline = 'middle';
+securityCtx.fillText(label, securityCanvas.width / 2, securityCanvas.height / 2);
+}
+function drawSecurityBarcode(hashHex) {
+const w = barcodeCanvas.width;
+const h = barcodeCanvas.height;
+const bctx = barcodeCanvas.getContext('2d');
+bctx.globalCompositeOperation = 'source-over';
+bctx.fillStyle = '#ffffff';
+bctx.fillRect(0, 0, w, h);
+try {
+const tmp = document.createElement('canvas');
+window.PDF417Mini.draw(tmp, hashHex);
+const scale = Math.min(w / tmp.width, h / tmp.height);
+const dw = tmp.width * scale;
+const dh = tmp.height * scale;
+bctx.imageSmoothingEnabled = false;
+bctx.drawImage(tmp, (w - dw) / 2, (h - dh) / 2, dw, dh);
+} catch (e) {
+console.error('PDF417 draw failed:', e);
+}
+}
+async function setupSecurityArea() {
+resizeSecurityCanvases();
+drawSecurityCoating();
+try {
+const hex = await sha256Hex(buildFingerprint());
+drawSecurityBarcode(hex);
+drawSecurityCoating();
+} catch (e) {
+console.error('security area setup failed:', e);
+drawSecurityCoating();
+}
+}
+function getSecurityPos(evt) {
+const rect = securityCanvas.getBoundingClientRect();
+const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+return { x: clientX - rect.left, y: clientY - rect.top };
+}
+function securityScratch(x, y) {
+const brush = Math.max(8, Math.min(securityCanvas.width, securityCanvas.height) * 0.18);
+securityCtx.globalCompositeOperation = 'destination-out';
+securityCtx.beginPath();
+securityCtx.arc(x, y, brush, 0, Math.PI * 2);
+securityCtx.fill();
+securityCtx.beginPath();
+securityCtx.lineWidth = brush * 2;
+securityCtx.lineCap = 'round';
+securityCtx.lineJoin = 'round';
+securityCtx.moveTo(securityLastX, securityLastY);
+securityCtx.lineTo(x, y);
+securityCtx.stroke();
+securityLastX = x;
+securityLastY = y;
+}
+function securityDown(e) {
+e.preventDefault();
+securityDrawing = true;
+const pos = getSecurityPos(e);
+securityLastX = pos.x;
+securityLastY = pos.y;
+securityScratch(pos.x, pos.y);
+}
+function securityMove(e) {
+if (!securityDrawing) return;
+e.preventDefault();
+const pos = getSecurityPos(e);
+securityScratch(pos.x, pos.y);
+}
+function securityUp() {
+securityDrawing = false;
+}
+securityCanvas.addEventListener('mousedown', securityDown);
+securityCanvas.addEventListener('mousemove', securityMove);
+securityCanvas.addEventListener('mouseup', securityUp);
+securityCanvas.addEventListener('mouseleave', securityUp);
+securityCanvas.addEventListener('touchstart', securityDown, { passive: false });
+securityCanvas.addEventListener('touchmove', securityMove, { passive: false });
+securityCanvas.addEventListener('touchend', securityUp);
+securityCanvas.addEventListener('touchcancel', securityUp);
+function resizeCanvas() {
+const rect = document.getElementById('game-area').getBoundingClientRect();
+canvas.width = rect.width;
+canvas.height = rect.height;
+}
+function drawCoating() {
+ctx.globalCompositeOperation = 'source-over';
+ctx.fillStyle = '#E5C4B8';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+ctx.lineWidth = 1;
+const cellW = canvas.width / COLS;
+const cellH = canvas.height / ROWS;
+ctx.beginPath();
+for (let i = 1; i < ROWS; i++) {
+ctx.moveTo(0, i * cellH);
+ctx.lineTo(canvas.width, i * cellH);
+}
+for (let i = 1; i < COLS; i++) {
+ctx.moveTo(i * cellW, 0);
+ctx.lineTo(i * cellW, canvas.height);
+}
+ctx.stroke();
+}
+function getMousePos(evt) {
+const rect = canvas.getBoundingClientRect();
+const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+return {
+x: clientX - rect.left,
+y: clientY - rect.top
+};
+}
+function scratch(x, y) {
+const brushRadius = getBrushRadius();
+ctx.globalCompositeOperation = 'destination-out';
+ctx.beginPath();
+ctx.arc(x, y, brushRadius, 0, Math.PI * 2);
+ctx.fill();
+ctx.beginPath();
+ctx.lineWidth = brushRadius * 2;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+ctx.moveTo(lastX, lastY);
+ctx.lineTo(x, y);
+ctx.stroke();
+lastX = x;
+lastY = y;
+}
+function checkAndClearCell(x, y) {
+const cellW = canvas.width / COLS;
+const cellH = canvas.height / ROWS;
+const col = Math.floor(x / cellW);
+const row = Math.floor(y / cellH);
+if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+const index = row * COLS + col;
+if (clearedState[index]) return;
+const sampleX = col * cellW + cellW * 0.2;
+const sampleY = row * cellH + cellH * 0.2;
+const sampleW = cellW * 0.6;
+const sampleH = cellH * 0.6;
+const imgData = ctx.getImageData(sampleX, sampleY, sampleW, sampleH).data;
+let transparentPixels = 0;
+const totalPixels = imgData.length / 4;
+for (let i = 3; i < imgData.length; i += 4) {
+if (imgData[i] < 50) {
+transparentPixels++;
+}
+}
+if (transparentPixels / totalPixels > 0.8) {
+clearedState[index] = true;
+clearedCount++;
+processCellReward(index);
+checkGameOver();
+}
+}
+function processCellReward(index) {
+const data = gridData[index];
+data.cleared = true;
+const g = revealedGroups[data.emoji] || (revealedGroups[data.emoji] = { count: 0, kcal: data.kcal });
+g.count++;
+if (g.count === 2) {
+totalKcal += data.kcal;
+document.getElementById('total-kcal').innerText = totalKcal;
+gridData.forEach(cell => {
+if (cell.emoji === data.emoji && cell.cleared) {
+cell.el.classList.add('matched');
+cell.el.style.backgroundColor = cell.hl || '#FFE8B0';
+}
+});
+}
+}
+function checkGameOver() {
+if (clearedCount === TOTAL_CELLS) {
+setTimeout(showResult, 500);
+}
+}
+function handleDown(e) {
+e.preventDefault();
+isDrawing = true;
+const pos = getMousePos(e);
+lastX = pos.x;
+lastY = pos.y;
+scratch(pos.x, pos.y);
+checkAndClearCell(pos.x, pos.y);
+}
+function handleMove(e) {
+if (!isDrawing) return;
+e.preventDefault();
+const pos = getMousePos(e);
+scratch(pos.x, pos.y);
+checkAndClearCell(pos.x, pos.y);
+}
+function handleUp(e) {
+isDrawing = false;
+}
+canvas.addEventListener('mousedown', handleDown);
+canvas.addEventListener('mousemove', handleMove);
+canvas.addEventListener('mouseup', handleUp);
+canvas.addEventListener('mouseleave', handleUp);
+canvas.addEventListener('touchstart', handleDown, { passive: false });
+canvas.addEventListener('touchmove', handleMove, { passive: false });
+canvas.addEventListener('touchend', handleUp);
+canvas.addEventListener('touchcancel', handleUp);
+let lastViewportWidth = window.innerWidth;
+window.addEventListener('resize', () => {
+if (gridData.length === 0) return;
+const widthChanged = Math.abs(window.innerWidth - lastViewportWidth) > 2;
+if (!widthChanged) return;
+lastViewportWidth = window.innerWidth;
+resizeCanvas();
+drawCoating();
+clearedState.fill(false);
+clearedCount = 0;
+totalKcal = 0; revealedGroups = {};
+document.getElementById('total-kcal').innerText = 0;
+gridData.forEach(cell => { cell.cleared = false; if (cell.el) { cell.el.classList.remove('matched'); cell.el.style.backgroundColor = ''; } });
+setupSecurityArea();
+});
+function showResult() {
+const modal = document.getElementById('result-modal');
+document.getElementById('modal-stats').innerText = `总热量 ${totalKcal}`;
+const numContainer = document.getElementById('modal-numbers');
+const wins = Object.entries(revealedGroups).map(([emoji, g]) => ({ emoji, kcal: g.kcal, count: g.count })).filter(w => w.count >= 2);
+if (wins.length === 0) {
+numContainer.innerText = "暂无";
+} else {
+numContainer.innerText = wins.map(w => `${w.emoji} ${w.kcal}`).join("\u3001");
+}
+modal.classList.add('show');
+}
+window.onload = initGame;</script>
+</body>
+</html>
